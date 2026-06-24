@@ -1,0 +1,1 @@
+export { AternosManager } from './pages';
