@@ -1,5 +1,5 @@
 {
-  "name": "@ivy-eco/aternosbot",
+  "name": "@ivy-eco/aternos",
   "version": "0.1.0",
   "description": "Aternos remote manager",
   "main": "dist/index.js",
