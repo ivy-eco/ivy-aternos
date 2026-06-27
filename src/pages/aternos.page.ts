@@ -18,7 +18,7 @@ class AternosPage implements IPage {
             await page.type('.username', username);
             await page.type('.password', password);
             await page.click('.login-button');
-            await page.waitForNavigation({ waitUntil: 'networkidle2' });
+            await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 90000 });
         }else{
           await logFun("Logged in");
         }
