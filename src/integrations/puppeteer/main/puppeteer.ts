@@ -6,18 +6,12 @@ import path from 'path';
 puppeteer.use(StealthPlugin());
 
 export class Puppeteer {
-    private _browser!: Browser;
-
-    async getBrowser(): Promise<Browser>{
-        if(!this._browser){
-            return puppeteer.launch({
-                headless: true,
-                userDataDir: path.join(process.cwd(), 'ATERNOS_SESSION'),
-                args: ['--no-sandbox', '--disable-setuid-sandbox']
-            });
-        }
-
-        return this._browser;
+    async getBrowser(username: string): Promise<Browser>{
+        return puppeteer.launch({
+            headless: true,
+            userDataDir: path.join(process.cwd(), 'data', 'sessions', username),
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
     }
 
 

@@ -49,7 +49,7 @@ class AternosPage implements IPage {
     }
 
     async checkServerStatus(username:string, password: string, logFun:LogFunc  = t => Promise.resolve(t), whenDone:() => Promise<void>){
-       let browser = await PuppeteerManager.getBrowser();
+       let browser = await PuppeteerManager.getBrowser(username);
        let finalLog = "There was a problem during the process.";
     
         try {
@@ -75,7 +75,7 @@ class AternosPage implements IPage {
     }
 
     async startAternosServer(username:string, password: string, logFun:LogFunc  = t => Promise.resolve(t), whenDone:() => Promise<void>) {
-        let browser = await PuppeteerManager.getBrowser();
+        let browser = await PuppeteerManager.getBrowser(username);
         let finalLog = "There was a problem during the process.";
 
         try {
@@ -129,7 +129,7 @@ class AternosPage implements IPage {
             } catch (error:any) {
                 await logFun("No ads found");
                 console.error(error.message);
-                const screenshotPath = path.join(__dirname, '..', '..', 'ATERNOS_SESSION', 'ads_error.png');
+                const screenshotPath = path.join(process.cwd(), 'data', 'sessions', username, 'ads_error.png');
                 await page.screenshot({ path: screenshotPath, fullPage: true });
                 console.log('screenshot ads.png');
             }
