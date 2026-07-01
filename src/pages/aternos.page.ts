@@ -5,58 +5,26 @@ import { IPage } from "../core/pages";
 import { Puppeteer, PuppeteerManager } from "../integrations/puppeteer";
 
 class AternosPage implements IPage {
+    private runningTasks: Set<string> = new Set();
+
     url: string = "https://aternos.org/go/";
 
-    async tryToLogIn(browser: Browser, username:string, password: string, logFun:LogFunc  = t => Promise.resolve(t)){
-        await logFun("Trying to connect to aternos.org");
-        const page = await Puppeteer.getPage(browser, 'https://aternos.org/go/');
-
-        const currentUrl = page.url();
-
-        if (currentUrl.includes('/go/')) {
-            await logFun("Logging in");
-            await page.type('.username', username);
-            await page.type('.password', password);
-            await page.click('.login-button');
-            await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 90000 });
-        }else{
-          await logFun("Logged in");
+    async checkServerStatus(username: string, password: string, logFun: LogFunc = t => Promise.resolve(t), whenDone: () => Promise<void>, extraMsg: (msg: string) => Promise<void>) {
+        if (this.runningTasks.has(username)) {
+            await extraMsg("There is a task running right now.");
+            return;
         }
 
-        return { page }
-    }
+        this.runningTasks.add(username);
 
-    async isOnline(page: Page, logFun:LogFunc  = t => Promise.resolve(t)){
-            await logFun("Looking for MCconAll");
-            await page.waitForSelector('.servercard', { visible: true, timeout: 15000 });
-    
-            const isAlreadyOnline = await page.evaluate(() => {
-                const serverCard = document.querySelector<HTMLAnchorElement>('.servercard');
+        let browser = await PuppeteerManager.getBrowser(username);
+        let finalLog = "There was a problem during the process.";
 
-                if (!serverCard) {
-                    throw new Error("No server card.");
-                }
-
-                if (serverCard.classList.contains('online')) {
-                    return true;
-                }
-
-                serverCard.click();
-                return false;
-            });
-
-            return isAlreadyOnline;
-    }
-
-    async checkServerStatus(username:string, password: string, logFun:LogFunc  = t => Promise.resolve(t), whenDone:() => Promise<void>){
-       let browser = await PuppeteerManager.getBrowser(username);
-       let finalLog = "There was a problem during the process.";
-    
         try {
             const { page } = await this.tryToLogIn(browser, username, password, logFun);
-    
+
             const isAlreadyOnline = await this.isOnline(page);
-    
+
             if (isAlreadyOnline) {
                 finalLog = await logFun("Server is already online.") as string;
             } else {
@@ -66,21 +34,30 @@ class AternosPage implements IPage {
             console.log(e)
         } finally {
             if (browser) {
-                await logFun(finalLog +"\nClosing browser");
+                await logFun(finalLog + "\nClosing browser");
                 await browser.close();
             }
+
+            this.runningTasks.delete(username);
 
             await whenDone();
         }
     }
 
-    async startAternosServer(username:string, password: string, logFun:LogFunc  = t => Promise.resolve(t), whenDone:() => Promise<void>) {
+    async startAternosServer(username: string, password: string, logFun: LogFunc = t => Promise.resolve(t), whenDone: () => Promise<void>, extraMsg: (msg: string) => Promise<void>) {
+        if (this.runningTasks.has(username)) {
+            await extraMsg("There is a task running right now.");
+            return;
+        }
+
+        this.runningTasks.add(username);
+
         let browser = await PuppeteerManager.getBrowser(username);
         let finalLog = "There was a problem during the process.";
 
         try {
             const { page } = await this.tryToLogIn(browser, username, password, logFun);
-    
+
             const isAlreadyOnline = await this.isOnline(page);
 
             if (isAlreadyOnline) {
@@ -126,7 +103,7 @@ class AternosPage implements IPage {
 
                 await new Promise(resolve => setTimeout(resolve, 32000));
 
-            } catch (error:any) {
+            } catch (error: any) {
                 await logFun("No ads found");
                 console.error(error.message);
                 const screenshotPath = path.join(process.cwd(), 'data', 'sessions', username, 'ads_error.png');
@@ -137,14 +114,14 @@ class AternosPage implements IPage {
             try {
                 await logFun("Looking for captcha question. Processing");
                 await page.waitForSelector('dialog.alert.alert-danger', { visible: true, timeout: 5000 });
-                
+
                 await page.evaluate(() => {
                     const acceptButton = document.querySelector<HTMLButtonElement>('dialog.alert.alert-danger .btn-success');
                     if (acceptButton) {
                         acceptButton.click();
                     }
                 });
-            } catch (error:any) {
+            } catch (error: any) {
                 await logFun("No captcha found");
                 console.error(error.message);
             }
@@ -154,7 +131,7 @@ class AternosPage implements IPage {
 
                 await page.waitForFunction(() => {
                     const statusLabel = document.querySelector('.statuslabel-label');
-                    
+
                     if (statusLabel) {
                         const text = statusLabel.textContent.toLowerCase();
                         return text.includes('online') || text.includes('línea') || text.includes('linea');
@@ -163,11 +140,11 @@ class AternosPage implements IPage {
                 }, { timeout: 300000 });
 
                 finalLog = await logFun("Server is now completely online.") as string;
-            } catch (error:any) {
+            } catch (error: any) {
                 finalLog = await logFun("Error waiting for status. Try later or ask Spirit.") as string;
                 console.error(error.message);
             }
-        } catch (error:any) {
+        } catch (error: any) {
             console.log(error.message);
         } finally {
             if (browser) {
@@ -175,8 +152,51 @@ class AternosPage implements IPage {
                 await browser.close();
             }
 
+            this.runningTasks.delete(username);
+
             await whenDone();
         }
+    }
+
+    private async tryToLogIn(browser: Browser, username: string, password: string, logFun: LogFunc = t => Promise.resolve(t)) {
+        await logFun("Trying to connect to aternos.org");
+        const page = await Puppeteer.getPage(browser, 'https://aternos.org/go/');
+
+        const currentUrl = page.url();
+
+        if (currentUrl.includes('/go/')) {
+            await logFun("Logging in");
+            await page.type('.username', username);
+            await page.type('.password', password);
+            await page.click('.login-button');
+            await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 90000 });
+        } else {
+            await logFun("Logged in");
+        }
+
+        return { page }
+    }
+
+    private async isOnline(page: Page, logFun: LogFunc = t => Promise.resolve(t)) {
+        await logFun("Looking for MCconAll");
+        await page.waitForSelector('.servercard', { visible: true, timeout: 15000 });
+
+        const isAlreadyOnline = await page.evaluate(() => {
+            const serverCard = document.querySelector<HTMLAnchorElement>('.servercard');
+
+            if (!serverCard) {
+                throw new Error("No server card.");
+            }
+
+            if (serverCard.classList.contains('online')) {
+                return true;
+            }
+
+            serverCard.click();
+            return false;
+        });
+
+        return isAlreadyOnline;
     }
 }
 
