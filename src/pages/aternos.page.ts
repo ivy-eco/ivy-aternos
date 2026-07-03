@@ -1,6 +1,6 @@
 import path from 'path';
 import { Browser, Page } from 'puppeteer';
-import { LogFunc } from "../common/utils";
+import { internalLog, LogFunc } from "../common/utils";
 import { IPage } from "../core/pages";
 import { Puppeteer, PuppeteerManager } from "../integrations/puppeteer";
 
@@ -12,6 +12,7 @@ class AternosPage implements IPage {
     async checkServerStatus(username: string, password: string, logFun: LogFunc = t => Promise.resolve(t), whenDone: () => Promise<void>, extraMsg: (msg: string) => Promise<void>) {
         if (this.runningTasks.has(username)) {
             await extraMsg("There is a task running right now.");
+            internalLog("There is a task running right now.", "INFO", username);
             return;
         }
 
@@ -27,14 +28,18 @@ class AternosPage implements IPage {
 
             if (isAlreadyOnline) {
                 finalLog = await logFun("Server is already online.") as string;
+                internalLog("Server is already online.", "INFO", username);
             } else {
                 finalLog = await logFun("Server is offline.") as string;
+                internalLog("Server is offline.", "INFO", username);
             }
-        } catch (e) {
+        } catch (e:any) {
             console.log(e)
+            internalLog(`Critical error: ${e.stack}`, "ERROR", username);
         } finally {
             if (browser) {
                 await logFun(finalLog + "\nClosing browser");
+                internalLog(`CLosing browser`, "INFO", username);
                 await browser.close();
             }
 
@@ -106,7 +111,8 @@ class AternosPage implements IPage {
             } catch (error: any) {
                 await logFun("No ads found");
                 console.error(error.message);
-                const screenshotPath = path.join(process.cwd(), 'data', 'sessions', username, 'ads_error.png');
+                internalLog(`Critical error: ${error.stack}`, "ERROR", username);
+                const screenshotPath = path.join(process.cwd(), 'data', 'sessions', username, 'errors', 'ads_error.png');
                 await page.screenshot({ path: screenshotPath, fullPage: true });
                 console.log('screenshot ads.png');
             }
@@ -123,6 +129,7 @@ class AternosPage implements IPage {
                 });
             } catch (error: any) {
                 await logFun("No captcha found");
+                internalLog(`Critical error: ${error.stack}`, "ERROR", username);
                 console.error(error.message);
             }
 
@@ -142,13 +149,15 @@ class AternosPage implements IPage {
                 finalLog = await logFun("Server is now completely online.") as string;
             } catch (error: any) {
                 finalLog = await logFun("Error waiting for status. Try later or ask Spirit.") as string;
-                console.error(error.message);
+                internalLog(`Critical error: ${error.stack}`, "ERROR", username);
             }
         } catch (error: any) {
             console.log(error.message);
+            internalLog(`Critical error: ${error.stack}`, "ERROR", username);
         } finally {
             if (browser) {
                 logFun(finalLog + "\nClosing browser");
+                internalLog(`CLosing browser`, "INFO", username);
                 await browser.close();
             }
 
