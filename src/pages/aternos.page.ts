@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs';
 import { Browser, Page } from 'puppeteer';
 import { internalLog, LogFunc } from "../common/utils";
 import { IPage } from "../core/pages";
@@ -71,7 +72,7 @@ class AternosPage implements IPage {
             }
 
             await logFun("Trying to start");
-            await page.waitForSelector('#start', { visible: true, timeout: 10000 });
+            await page.waitForSelector('#start', { visible: true, timeout: 30000 });
             await page.click('#start');
 
             try {
@@ -112,7 +113,14 @@ class AternosPage implements IPage {
                 await logFun("No ads found");
                 console.error(error.message);
                 internalLog(`Critical error: ${error.stack}`, "ERROR", username);
-                const screenshotPath = path.join(process.cwd(), 'data', 'sessions', username, 'errors', 'ads_error.png');
+                const date = new Date().toISOString().split('T')[0]
+                const screenshotPath = path.join(process.cwd(), 'data', 'sessions', username, 'errors', `${date}_ads_error.png`);
+                const errorDir = path.dirname(screenshotPath);
+
+                if (!fs.existsSync(errorDir)) {
+                    fs.mkdirSync(errorDir, { recursive: true });
+                }
+
                 await page.screenshot({ path: screenshotPath, fullPage: true });
                 console.log('screenshot ads.png');
             }
