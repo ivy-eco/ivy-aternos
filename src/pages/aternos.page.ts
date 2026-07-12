@@ -12,7 +12,7 @@ class AternosPage implements IPage {
 
     async checkServerStatus(username: string, password: string, logFun: LogFunc = t => Promise.resolve(t), whenDone: () => Promise<void>, extraMsg: (msg: string) => Promise<void>) {
         if (this.runningTasks.has(username)) {
-            await extraMsg("There is a task running right now.");
+            await extraMsg("⚠️ There is a task running right now.");
             internalLog("There is a task running right now.", "INFO", username);
             return;
         }
@@ -20,7 +20,7 @@ class AternosPage implements IPage {
         this.runningTasks.add(username);
 
         let browser = await PuppeteerManager.getBrowser(username);
-        let finalLog = "There was a problem during the process.";
+        let finalLog = "❌ There was a problem during the process.";
 
         try {
             const { page } = await this.tryToLogIn(browser, username, password, logFun);
@@ -28,19 +28,19 @@ class AternosPage implements IPage {
             const isAlreadyOnline = await this.isOnline(page);
 
             if (isAlreadyOnline) {
-                finalLog = await logFun("Server is already online.") as string;
+                finalLog = await logFun("🟢 Server is already online.") as string;
                 internalLog("Server is already online.", "INFO", username);
             } else {
-                finalLog = await logFun("Server is offline.") as string;
+                finalLog = await logFun("🔴 Server is offline.") as string;
                 internalLog("Server is offline.", "INFO", username);
             }
-        } catch (e:any) {
+        } catch (e: any) {
             console.log(e)
             internalLog(`Critical error: ${e.stack}`, "ERROR", username);
         } finally {
             if (browser) {
-                await logFun(finalLog + "\nClosing browser");
-                internalLog(`CLosing browser`, "INFO", username);
+                await logFun(finalLog + "\n> Task done");
+                internalLog(`Closing browser`, "INFO", username);
                 await browser.close();
             }
 
@@ -50,16 +50,17 @@ class AternosPage implements IPage {
         }
     }
 
-    async startAternosServer(username: string, password: string, logFun: LogFunc = t => Promise.resolve(t), whenDone: () => Promise<void>, extraMsg: (msg: string) => Promise<void>) {
+    async startServer(username: string, password: string, logFun: LogFunc = t => Promise.resolve(t), whenDone: () => Promise<void>, extraMsg: (msg: string) => Promise<void>) {
         if (this.runningTasks.has(username)) {
-            await extraMsg("There is a task running right now.");
+            await extraMsg("⚠️ There is a task running right now.");
+            internalLog("There is a task running right now.", "INFO", username);
             return;
         }
 
         this.runningTasks.add(username);
 
         let browser = await PuppeteerManager.getBrowser(username);
-        let finalLog = "There was a problem during the process.";
+        let finalLog = "❌ There was a problem during the process.";
 
         try {
             const { page } = await this.tryToLogIn(browser, username, password, logFun);
@@ -67,17 +68,17 @@ class AternosPage implements IPage {
             const isAlreadyOnline = await this.isOnline(page);
 
             if (isAlreadyOnline) {
-                finalLog = await logFun("Server is already online. Aborting start sequence.") as string;
+                finalLog = await logFun("🟢 Server is already online. Aborting start sequence.") as string;
                 return;
             }
 
-            await logFun("Trying to start");
+            await logFun("🌐 Trying to start");
             await page.waitForSelector('#start', { visible: true, timeout: 30000 });
             await page.click('#start');
 
             try {
                 const modalButtonSelector = '.btn';
-                await logFun("Ads request. Waiting");
+                await logFun("⌛ Ads request. Waiting");
 
                 await page.waitForFunction(
                     (selector) => {
@@ -110,7 +111,7 @@ class AternosPage implements IPage {
                 await new Promise(resolve => setTimeout(resolve, 32000));
 
             } catch (error: any) {
-                await logFun("No ads found");
+                await logFun("🗿 No ads found");
                 console.error(error.message);
                 internalLog(`Critical error: ${error.stack}`, "ERROR", username);
                 const date = new Date().toISOString().split('T')[0]
@@ -126,7 +127,7 @@ class AternosPage implements IPage {
             }
 
             try {
-                await logFun("Looking for captcha question. Processing");
+                await logFun("🧩 Looking for captcha question. Processing");
                 await page.waitForSelector('dialog.alert.alert-danger', { visible: true, timeout: 5000 });
 
                 await page.evaluate(() => {
@@ -136,13 +137,13 @@ class AternosPage implements IPage {
                     }
                 });
             } catch (error: any) {
-                await logFun("No captcha found");
+                await logFun("🗿 No captcha found");
                 internalLog(`Critical error: ${error.stack}`, "ERROR", username);
                 console.error(error.message);
             }
 
             try {
-                await logFun("Trying to initialize server.");
+                await logFun("🟡 Trying to initialize server.");
 
                 await page.waitForFunction(() => {
                     const statusLabel = document.querySelector('.statuslabel-label');
@@ -154,9 +155,9 @@ class AternosPage implements IPage {
                     return false;
                 }, { timeout: 300000 });
 
-                finalLog = await logFun("Server is now completely online.") as string;
+                finalLog = await logFun("🟢 Server is now completely online.") as string;
             } catch (error: any) {
-                finalLog = await logFun("Error waiting for status. Try later or ask Spirit.") as string;
+                finalLog = await logFun("❌ Error waiting for status. Try later or ask Spirit.") as string;
                 internalLog(`Critical error: ${error.stack}`, "ERROR", username);
             }
         } catch (error: any) {
@@ -164,8 +165,61 @@ class AternosPage implements IPage {
             internalLog(`Critical error: ${error.stack}`, "ERROR", username);
         } finally {
             if (browser) {
-                logFun(finalLog + "\nClosing browser");
-                internalLog(`CLosing browser`, "INFO", username);
+                await logFun(finalLog + "\n> Task done");
+                internalLog(`Closing browser`, "INFO", username);
+                await browser.close();
+            }
+
+            this.runningTasks.delete(username);
+
+            await whenDone();
+        }
+    }
+
+    async checkPlayers(username: string, password: string, logFun: LogFunc = t => Promise.resolve(t), whenDone: () => Promise<void>, extraMsg: (msg: string) => Promise<void>) {
+        if (this.runningTasks.has(username)) {
+            await extraMsg("⚠️ There is a task running right now.");
+            internalLog("There is a task running right now.", "INFO", username);
+            return;
+        }
+
+        this.runningTasks.add(username);
+
+        let browser = await PuppeteerManager.getBrowser(username);
+        let finalLog = "❌ There was a problem during the process.";
+
+        try {
+            const { page } = await this.tryToLogIn(browser, username, password, logFun);
+
+            const isAlreadyOnline = await this.isOnline(page);
+
+            if (isAlreadyOnline) {
+                const playersLinkSelector = 'a[href="/players/"]';
+                await page.waitForSelector(playersLinkSelector, { visible: true, timeout: 30000 });
+                page.click(playersLinkSelector);
+
+                await page.waitForSelector('.playercardlist-wrapper.online', { visible: true, timeout: 30000 });
+
+                const playerElements = await page.$$('.player-name');
+
+                const playerNames: string[] = [];
+
+                for (const player of playerElements) {
+                    const playerName = await page.evaluate(el => el.textContent?.trim(), player);
+                    playerNames.push(playerName)
+                }
+
+                finalLog = await logFun("🎮 Players\n * " + playerNames.join("\n * ")) as string;
+            } else {
+                finalLog = await logFun("🔴 Server is offline. No players.") as string;
+                internalLog("Server is offline.", "INFO", username);
+            }
+        } catch (e: any) {
+            internalLog(`Critical error: ${e.stack}`, "ERROR", username);
+        } finally {
+            if (browser) {
+                await logFun(finalLog + "\n> Task done");
+                internalLog(`Closing browser`, "INFO", username);
                 await browser.close();
             }
 
@@ -182,38 +236,33 @@ class AternosPage implements IPage {
         const currentUrl = page.url();
 
         if (currentUrl.includes('/go/')) {
-            await logFun("Logging in");
+            await logFun("🔐 Logging in");
             await page.type('.username', username);
             await page.type('.password', password);
             await page.click('.login-button');
             await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 90000 });
         } else {
-            await logFun("Logged in");
+            await logFun("🔓 Logged in");
         }
 
         return { page }
     }
 
     private async isOnline(page: Page, logFun: LogFunc = t => Promise.resolve(t)) {
-        await logFun("Looking for MCconAll");
+        await logFun("🔎 Looking for server");
         await page.waitForSelector('.servercard', { visible: true, timeout: 15000 });
 
-        const isAlreadyOnline = await page.evaluate(() => {
+        const isOnline = await page.evaluate(() => {
             const serverCard = document.querySelector<HTMLAnchorElement>('.servercard');
 
-            if (!serverCard) {
-                throw new Error("No server card.");
-            }
+            if (!serverCard) throw new Error("No server card.");
 
-            if (serverCard.classList.contains('online')) {
-                return true;
-            }
-
-            serverCard.click();
-            return false;
+            return serverCard.classList.contains('online');
         });
 
-        return isAlreadyOnline;
+        await page.click('.servercard');
+
+        return isOnline;
     }
 }
 
