@@ -209,7 +209,7 @@ class AternosPage implements IPage {
                     playerNames.push(playerName)
                 }
 
-                finalLog = await logFun("🎮 Players\n * " + playerNames.join("\n * ")) as string;
+                finalLog = await logFun("🎮 Players\n* " + playerNames.join("\n* ")) as string;
             } else {
                 finalLog = await logFun("🔴 Server is offline. No players.") as string;
                 internalLog("Server is offline.", "INFO", username);
@@ -230,7 +230,7 @@ class AternosPage implements IPage {
     }
 
     private async tryToLogIn(browser: Browser, username: string, password: string, logFun: LogFunc = t => Promise.resolve(t)) {
-        await logFun("Trying to connect to aternos.org");
+        await logFun("🟡 Trying to connect to aternos");
         const page = await Puppeteer.getPage(browser, 'https://aternos.org/go/');
 
         const currentUrl = page.url();
