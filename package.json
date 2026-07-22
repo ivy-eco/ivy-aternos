@@ -3,17 +3,29 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "description": "Aternos remote manager",
+  "description": "Aternos remote manager for Ivy",
+  "license": "MIT",
+  "author": "AFelipeCR",
   "scripts": {
-    "dev": "tsx src/index.ts",
-    "build": "tsc",
-    "prepare": "npm run build"
+    "build": "tsc"
   },
   "keywords": [
     "Minecraft"
   ],
-  "author": "AFelipeCR",
-  "license": "ISC",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ivy-eco/ivy-aternos.git"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./*": "./dist/*.js"
+  },
   "dependencies": {
     "@ivy-eco/sdk": "^0.1.0",
     "dotenv": "^17.4.2",
