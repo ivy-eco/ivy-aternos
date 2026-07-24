@@ -1,6 +1,6 @@
 {
   "name": "@ivy-eco/aternos",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "description": "Aternos remote manager for Ivy",
@@ -27,7 +27,7 @@
     "./*": "./dist/*.js"
   },
   "dependencies": {
-    "@ivy-eco/sdk": "^0.1.0",
+    "@ivy-eco/sdk": "^0.2.0",
     "dotenv": "^17.4.2",
     "puppeteer": "^25.1.0",
     "puppeteer-extra": "^3.3.6",
